@@ -1,10 +1,11 @@
-const MAX_CHARS = 5000
+import { memo } from 'react'
 
-export function TextArea({ text, setText, highlightIndex, words }) {
+export const TextArea = memo(function TextArea({ text, setText, highlightIndex, words }) {
+  // Speaking mode — show highlighted words
   if (highlightIndex >= 0 && words.length > 0) {
     let charCount = 0
     return (
-      <div className="w-full min-h-[180px] p-4 rounded-xl border border-violet-200 dark:border-violet-800 bg-violet-50/30 dark:bg-gray-800 text-gray-800 dark:text-gray-100 text-base leading-relaxed font-sans whitespace-pre-wrap break-words ring-2 ring-violet-300/50 dark:ring-violet-700/50">
+      <div className="w-full min-h-[180px] p-4 rounded-xl border border-indigo-200 dark:border-indigo-800/60 bg-indigo-50/20 dark:bg-gray-800 text-gray-800 dark:text-gray-100 text-base leading-relaxed whitespace-pre-wrap break-words">
         {words.map((word, i) => {
           const start = charCount
           charCount += word.length + 1
@@ -12,7 +13,11 @@ export function TextArea({ text, setText, highlightIndex, words }) {
           return (
             <span
               key={i}
-              className={`transition-colors duration-100 ${isActive ? 'bg-violet-400 dark:bg-violet-600 text-white rounded px-0.5' : ''}`}
+              className={`transition-all duration-75 ${
+                isActive
+                  ? 'bg-indigo-500 text-white rounded px-0.5 shadow-sm'
+                  : ''
+              }`}
             >
               {word}{' '}
             </span>
@@ -22,18 +27,14 @@ export function TextArea({ text, setText, highlightIndex, words }) {
     )
   }
 
+  // Edit mode
   return (
-    <div className="relative">
-      <textarea
-        value={text}
-        onChange={(e) => setText(e.target.value.slice(0, MAX_CHARS))}
-        placeholder="Paste or type your text here..."
-        rows={7}
-        className="w-full p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 placeholder-gray-300 dark:placeholder-gray-600 resize-none focus:outline-none focus:ring-2 focus:ring-violet-400 dark:focus:ring-violet-600 text-base leading-relaxed transition-colors"
-      />
-      <span className={`absolute bottom-3 right-3 text-xs tabular-nums ${text.length > MAX_CHARS * 0.9 ? 'text-orange-400' : 'text-gray-300 dark:text-gray-600'}`}>
-        {text.length}/{MAX_CHARS}
-      </span>
-    </div>
+    <textarea
+      value={text}
+      onChange={(e) => setText(e.target.value)}
+      placeholder="Paste or type your text here..."
+      rows={7}
+      className="w-full p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 placeholder-gray-300 dark:placeholder-gray-600 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-400 dark:focus:ring-indigo-600 text-base leading-relaxed transition-colors"
+    />
   )
-}
+})

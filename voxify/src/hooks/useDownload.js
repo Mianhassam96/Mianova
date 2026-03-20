@@ -1,106 +1,125 @@
 import { useRef, useState, useCallback } from 'react'
 
 /**
- * Downloads speech as audio using SpeechSynthesis + AudioContext routing.
- * This approach speaks into a silent AudioContext and records via MediaRecorder.
- * Works in Chrome/Edge. Firefox has limited SpeechSynthesis support.
+ * Records speech via getDisplayMedia (tab audio capture).
+ * User must: share THIS tab + enable "Share tab audio" checkbox.
+ * Works reliably in Chrome/Edge.
  */
 export function useDownload() {
-  const [isRecording, setIsRecording] = useState(false)
-  const [progress, setProgress] = useState(0) // 0-100
+  const [status, setStatus] = useState('idle') // idle | waiting | recording | saving
+  const [progress, setProgress] = useState(0)
   const recorderRef = useRef(null)
   const chunksRef = useRef([])
-  const contextRef = useRef(null)
 
-  const downloadSpeech = useCallback(async ({ text, voice, rate = 1, pitch = 1 }) => {
-    if (!text.trim()) return
+  const downloadSpeech = useCallback(async ({ text, voice, rate = 1, pitch = 1, volume = 1, onReady }) => {
+    if (!text.trim()) return 'no-text'
 
     try {
-      setIsRecording(true)
-      setProgress(10)
+      setStatus('waiting')
 
-      // Create AudioContext
-      const ctx = new (window.AudioContext || window.webkitAudioContext)()
-      contextRef.current = ctx
+      // Step 1: get tab audio via screen share
+      let stream
+      try {
+        stream = await navigator.mediaDevices.getDisplayMedia({
+          video: { displaySurface: 'browser' },
+          audio: { suppressLocalAudioPlayback: false },
+          preferCurrentTab: true, // Chrome 109+ hint
+        })
+      } catch (e) {
+        setStatus('idle')
+        return 'cancelled'
+      }
 
-      // Create a destination node we can record from
-      const dest = ctx.createMediaStreamDestination()
+      // Drop video, keep audio only
+      stream.getVideoTracks().forEach(t => t.stop())
+      const audioTracks = stream.getAudioTracks()
 
-      // Also connect to speakers so user hears it
-      const gainNode = ctx.createGain()
-      gainNode.gain.value = 1
-      gainNode.connect(ctx.destination)
-      gainNode.connect(dest)
+      if (!audioTracks.length) {
+        stream.getTracks().forEach(t => t.stop())
+        setStatus('idle')
+        return 'no-audio'
+      }
 
-      setProgress(20)
-
-      // Set up MediaRecorder on the stream
-      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-        ? 'audio/webm;codecs=opus'
-        : 'audio/webm'
-
+      const audioStream = new MediaStream(audioTracks)
       chunksRef.current = []
-      const recorder = new MediaRecorder(dest.stream, { mimeType })
+
+      const mimeType = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg']
+        .find(t => MediaRecorder.isTypeSupported(t)) || ''
+
+      const recorder = new MediaRecorder(audioStream, mimeType ? { mimeType } : {})
       recorder.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data) }
       recorderRef.current = recorder
 
       recorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: mimeType })
+        const ext = mimeType.includes('ogg') ? 'ogg' : 'webm'
+        const blob = new Blob(chunksRef.current, { type: mimeType || 'audio/webm' })
         const url = URL.createObjectURL(blob)
         const a = document.createElement('a')
         a.href = url
-        a.download = `voxify-${Date.now()}.webm`
+        a.download = `voxify-${Date.now()}.${ext}`
         document.body.appendChild(a)
         a.click()
         document.body.removeChild(a)
-        URL.revokeObjectURL(url)
-        ctx.close()
-        setIsRecording(false)
+        setTimeout(() => URL.revokeObjectURL(url), 1000)
+        audioStream.getTracks().forEach(t => t.stop())
+        recorderRef.current = null
+        setStatus('idle')
         setProgress(0)
       }
 
       recorder.start(100)
-      setProgress(40)
+      setStatus('recording')
+      setProgress(10)
 
-      // Speak using SpeechSynthesis
+      // Step 2: speak
       const utterance = new SpeechSynthesisUtterance(text)
       utterance.rate = rate
       utterance.pitch = pitch
+      utterance.volume = volume
       if (voice) utterance.voice = voice
 
-      utterance.onstart = () => setProgress(60)
+      utterance.onstart = () => { setProgress(30); onReady?.() }
+
+      utterance.onboundary = (e) => {
+        if (e.name === 'word' && e.charIndex != null) {
+          const pct = Math.min(90, 30 + Math.round((e.charIndex / text.length) * 60))
+          setProgress(pct)
+        }
+      }
+
       utterance.onend = () => {
-        setProgress(90)
-        // Small delay to capture tail audio
+        setProgress(95)
+        setStatus('saving')
         setTimeout(() => {
           if (recorder.state !== 'inactive') recorder.stop()
-        }, 500)
+        }, 700)
       }
-      utterance.onerror = () => {
-        recorder.stop()
-        setIsRecording(false)
-        setProgress(0)
+
+      utterance.onerror = (e) => {
+        console.warn('Speech error:', e)
+        if (recorder.state !== 'inactive') recorder.stop()
       }
 
       window.speechSynthesis.cancel()
       window.speechSynthesis.speak(utterance)
 
+      return 'ok'
     } catch (err) {
-      console.warn('Download failed:', err)
-      setIsRecording(false)
+      console.warn('Download error:', err)
+      setStatus('idle')
       setProgress(0)
-      return false
+      return 'error'
     }
-    return true
   }, [])
 
   const cancel = useCallback(() => {
     window.speechSynthesis.cancel()
-    if (recorderRef.current?.state !== 'inactive') recorderRef.current?.stop()
-    contextRef.current?.close()
-    setIsRecording(false)
+    if (recorderRef.current?.state !== 'inactive') {
+      recorderRef.current?.stop()
+    }
+    setStatus('idle')
     setProgress(0)
   }, [])
 
-  return { isRecording, progress, downloadSpeech, cancel }
+  return { status, progress, downloadSpeech, cancel }
 }

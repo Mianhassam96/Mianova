@@ -174,6 +174,7 @@ export default function AppPage() {
                 voice={currentVoice}
                 rate={rate}
                 pitch={pitch}
+                volume={volume}
               />
               <button
                 onClick={() => setIsAdvanced(v => !v)}

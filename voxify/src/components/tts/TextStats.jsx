@@ -1,11 +1,11 @@
 import { memo, useState } from 'react'
 
-export const TextStats = memo(function TextStats({ text, onClean, onCopy }) {
+export const TextStats = memo(function TextStats({ text, onClean }) {
   const [copied, setCopied] = useState(false)
 
   const words = text.trim() ? text.trim().split(/\s+/).length : 0
   const chars = text.length
-  const sentences = text.split(/[.!?]+/).filter(s => s.trim()).length
+  const sentences = text.trim() ? text.split(/[.!?]+/).filter(s => s.trim()).length : 0
   const readingTimeSec = Math.ceil((words / 150) * 60) // avg 150 wpm reading
   const speakTimeSec = Math.ceil((words / 130) * 60)   // avg 130 wpm speaking
 
