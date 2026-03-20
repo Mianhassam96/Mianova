@@ -1,0 +1,5 @@
+node_modules/
+voxify/node_modules/
+voxify/dist/
+.vscode/
+*.local
