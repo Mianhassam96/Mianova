@@ -5,7 +5,7 @@ import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
-  base: mode === "production" ? "/Text-to-Speech-Converter/" : "/",
+  base: mode === "production" ? "/Voxify/" : "/",
   server: {
     host: "::",
     port: 8080,
