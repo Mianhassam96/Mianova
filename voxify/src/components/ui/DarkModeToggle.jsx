@@ -1,15 +1,30 @@
 import { useEffect, useState } from 'react'
 
+function getInitialDark() {
+  const stored = localStorage.getItem('voxify_theme')
+  if (stored) return stored === 'dark'
+  return window.matchMedia('(prefers-color-scheme: dark)').matches
+}
+
 export function DarkModeToggle() {
-  const [dark, setDark] = useState(() =>
-    localStorage.getItem('voxify_theme') === 'dark' ||
-    (!localStorage.getItem('voxify_theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)
-  )
+  const [dark, setDark] = useState(getInitialDark)
 
   useEffect(() => {
-    document.documentElement.classList.toggle('dark', dark)
+    const root = document.documentElement
+    if (dark) {
+      root.classList.add('dark')
+    } else {
+      root.classList.remove('dark')
+    }
     localStorage.setItem('voxify_theme', dark ? 'dark' : 'light')
   }, [dark])
+
+  // Apply on first mount before paint
+  useEffect(() => {
+    if (getInitialDark()) {
+      document.documentElement.classList.add('dark')
+    }
+  }, [])
 
   return (
     <button

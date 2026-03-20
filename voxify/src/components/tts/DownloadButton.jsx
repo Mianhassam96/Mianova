@@ -1,28 +1,32 @@
+import { useEffect, useRef } from 'react'
 import { useDownload } from '../../hooks/useDownload'
 import { Button } from '../ui/Button'
 
 export function DownloadButton({ onRequestPlay, isSpeaking, text }) {
   const { isRecording, startRecording, stopAndDownload } = useDownload()
+  const autoStopTimer = useRef(null)
+
+  // Auto-stop when speech finishes while recording
+  useEffect(() => {
+    if (isRecording && !isSpeaking) {
+      autoStopTimer.current = setTimeout(() => {
+        stopAndDownload('voxify-speech.webm')
+      }, 600)
+    }
+    return () => clearTimeout(autoStopTimer.current)
+  }, [isRecording, isSpeaking, stopAndDownload])
 
   const handleClick = async () => {
     if (isRecording) {
       stopAndDownload('voxify-speech.webm')
       return
     }
-
     const started = await startRecording()
     if (!started) {
-      alert('Could not start recording. Please allow screen/tab audio sharing when prompted.')
+      alert('Could not capture audio.\n\nTip: When the screen share dialog appears, make sure to check "Share tab audio" and select this tab.')
       return
     }
-    // Kick off speech after recording starts
     onRequestPlay()
-  }
-
-  // Auto-stop recording when speech ends
-  if (isRecording && !isSpeaking && text) {
-    // slight delay so last chunk is captured
-    setTimeout(() => stopAndDownload('voxify-speech.webm'), 400)
   }
 
   return (
