@@ -1,47 +1,43 @@
+import { Link } from 'react-router-dom'
+
 export function Footer() {
   return (
-    <footer className="border-t border-gray-100 dark:border-gray-800 bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* Brand */}
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <span className="text-xl">🔊</span>
-              <span className="text-lg font-bold gradient-text">Voxify</span>
+    <footer className="border-t border-gray-100 dark:border-gray-800/60 bg-white/40 dark:bg-gray-950/40 backdrop-blur-sm">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-10">
+          <div className="md:col-span-2">
+            <div className="flex items-center gap-2.5 mb-3">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-black text-sm">V</div>
+              <span className="text-lg font-black gradient-text">Voxify</span>
             </div>
-            <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
+            <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed max-w-xs">
               Turn any text into natural-sounding voice instantly. Fast, smart, and beautifully simple.
             </p>
           </div>
-
-          {/* Links */}
           <div>
-            <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Product</h4>
+            <h4 className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-3">Product</h4>
             <ul className="space-y-2 text-sm text-gray-500 dark:text-gray-400">
-              <li><a href="#app" className="hover:text-indigo-500 transition-colors">Try Voxify</a></li>
-              <li><a href="#features" className="hover:text-indigo-500 transition-colors">Features</a></li>
+              <li><Link to="/app" className="hover:text-indigo-500 transition-colors">Try Voxify</Link></li>
+              <li><Link to="/features" className="hover:text-indigo-500 transition-colors">Features</Link></li>
+              <li><Link to="/about" className="hover:text-indigo-500 transition-colors">About</Link></li>
             </ul>
           </div>
-
-          {/* Built by */}
           <div>
-            <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Built by</h4>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              MultiMian —{' '}
-              <a
-                href="https://github.com/Mianhassam96"
-                target="_blank"
-                rel="noreferrer"
-                className="text-indigo-500 hover:text-indigo-400 transition-colors"
-              >
-                @Mianhassam96
-              </a>
-            </p>
+            <h4 className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-3">Built by</h4>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">MultiMian</p>
+            <a href="https://github.com/Mianhassam96" target="_blank" rel="noreferrer"
+              className="inline-flex items-center gap-1.5 text-sm text-indigo-500 hover:text-indigo-400 transition-colors font-medium">
+              ⭐ @Mianhassam96
+            </a>
           </div>
         </div>
-
-        <div className="mt-8 pt-6 border-t border-gray-100 dark:border-gray-800 text-center text-xs text-gray-400 dark:text-gray-600">
-          © {new Date().getFullYear()} Voxify by MultiMian. All rights reserved.
+        <div className="pt-6 border-t border-gray-100 dark:border-gray-800/60 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <p className="text-xs text-gray-400 dark:text-gray-600">© {new Date().getFullYear()} Voxify by MultiMian. All rights reserved.</p>
+          <div className="flex items-center gap-1 text-xs text-gray-400 dark:text-gray-600">
+            <span>Built with</span>
+            <span className="text-red-400">♥</span>
+            <span>using React + Tailwind</span>
+          </div>
         </div>
       </div>
     </footer>
