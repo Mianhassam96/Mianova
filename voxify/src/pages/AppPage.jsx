@@ -307,7 +307,7 @@ export default function AppPage() {
             </div>
 
             {/* Audio download card */}
-            <AudioPanel text={cleanText(text)} lang={detectLang(text)} />
+            <AudioPanel text={cleanText(text)} lang={detectLang(text)} rate={rate} />
 
             {/* Stats card */}
             {text.trim() && (
