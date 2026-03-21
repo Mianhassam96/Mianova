@@ -31,13 +31,8 @@ export function Footer() {
             </a>
           </div>
         </div>
-        <div className="pt-6 border-t border-gray-100 dark:border-gray-800/60 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="pt-6 border-t border-gray-100 dark:border-gray-800/60 flex justify-center">
           <p className="text-xs text-gray-400 dark:text-gray-600">© {new Date().getFullYear()} Mianova by MultiMian. All rights reserved.</p>
-          <div className="flex items-center gap-1 text-xs text-gray-400 dark:text-gray-600">
-            <span>Built with</span>
-            <span className="text-red-400">♥</span>
-            <span>using React + Tailwind</span>
-          </div>
         </div>
       </div>
     </footer>
