@@ -1,6 +1,3 @@
-Got it — here’s your **README in one clean continuous text (no extra blocks, no separation)** 👇
-
----
 
 # 🎙️ Mianova
 
