@@ -17,7 +17,7 @@ export function Footer() {
           <div>
             <h4 className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-3">Product</h4>
             <ul className="space-y-2 text-sm text-gray-500 dark:text-gray-400">
-              <li><Link to="/app" className="hover:text-indigo-500 transition-colors">Try Voxify</Link></li>
+              <li><Link to="/app" className="hover:text-indigo-500 transition-colors">Try Mianova</Link></li>
               <li><Link to="/features" className="hover:text-indigo-500 transition-colors">Features</Link></li>
               <li><Link to="/about" className="hover:text-indigo-500 transition-colors">About</Link></li>
             </ul>
@@ -32,7 +32,7 @@ export function Footer() {
           </div>
         </div>
         <div className="pt-6 border-t border-gray-100 dark:border-gray-800/60 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <p className="text-xs text-gray-400 dark:text-gray-600">© {new Date().getFullYear()} Voxify by MultiMian. All rights reserved.</p>
+          <p className="text-xs text-gray-400 dark:text-gray-600">© {new Date().getFullYear()} Mianova by MultiMian. All rights reserved.</p>
           <div className="flex items-center gap-1 text-xs text-gray-400 dark:text-gray-600">
             <span>Built with</span>
             <span className="text-red-400">♥</span>

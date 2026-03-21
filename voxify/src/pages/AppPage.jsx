@@ -19,9 +19,9 @@ export default function AppPage() {
   const { voices, isSpeaking, isPaused, speak, pause, resume, stop } = useSpeech()
   const [text, setText] = useState('')
   const [selectedVoice, setSelectedVoice] = useState(null)
-  const [rate, setRate] = useLocalStorage('voxify_rate', 1)
-  const [pitch, setPitch] = useLocalStorage('voxify_pitch', 1)
-  const [volume, setVolume] = useLocalStorage('voxify_volume', 1)
+  const [rate, setRate] = useLocalStorage('mianova_rate', 1)
+  const [pitch, setPitch] = useLocalStorage('mianova_pitch', 1)
+  const [volume, setVolume] = useLocalStorage('mianova_volume', 1)
   const [isAdvanced, setIsAdvanced] = useState(false)
   const [activePreset, setActivePreset] = useState('Normal')
   const [highlightIndex, setHighlightIndex] = useState(-1)
@@ -92,7 +92,7 @@ export default function AppPage() {
         {/* Header */}
         <div className="text-center animate-fade-up mb-6">
           <h1 className="text-3xl font-black text-gray-900 dark:text-white">
-            <span className="gradient-text">Voxify</span> Studio
+            <span className="gradient-text">Mianova</span> Studio
           </h1>
           <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Paste text · Hit play · Hear it instantly</p>
         </div>

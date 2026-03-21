@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 
 function getInitialDark() {
   try {
-    const stored = localStorage.getItem('voxify_theme')
+    const stored = localStorage.getItem('mianova_theme')
     if (stored) return stored === 'dark'
     return window.matchMedia('(prefers-color-scheme: dark)').matches
   } catch {
@@ -20,7 +20,7 @@ export function DarkModeToggle() {
     } else {
       root.classList.remove('dark')
     }
-    try { localStorage.setItem('voxify_theme', dark ? 'dark' : 'light') } catch {}
+    try { localStorage.setItem('mianova_theme', dark ? 'dark' : 'light') } catch {}
   }, [dark])
 
   return (

@@ -17,7 +17,7 @@ export default function AboutPage() {
               </div>
             </div>
             <h1 className="text-4xl sm:text-5xl font-black text-gray-900 dark:text-white mb-4">
-              About <span className="gradient-text">Voxify</span>
+              About <span className="gradient-text">Mianova</span>
             </h1>
             <p className="text-lg text-gray-500 dark:text-gray-400 leading-relaxed">
               A fast, smart, and beautifully simple text-to-speech tool built entirely in the browser.
@@ -31,7 +31,7 @@ export default function AboutPage() {
                 <span className="text-2xl">💡</span> The Story
               </h2>
               <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
-                Voxify was built to prove that a powerful TTS tool doesn't need a backend, a subscription, or a complex setup. Everything runs in your browser using the Web Speech API — instant, private, and free.
+                Mianova was built to prove that a powerful TTS tool doesn't need a backend, a subscription, or a complex setup. Everything runs in your browser using the Web Speech API — instant, private, and free.
               </p>
             </div>
 
@@ -72,7 +72,7 @@ export default function AboutPage() {
               to="/app"
               className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-bold text-lg shadow-xl shadow-indigo-500/25 hover:scale-105 transition-all duration-200"
             >
-              🎙 Try Voxify
+              🎙 Try Mianova
             </Link>
           </div>
         </div>

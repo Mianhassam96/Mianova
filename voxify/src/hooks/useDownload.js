@@ -127,7 +127,7 @@ export function useDownload() {
   /**
    * Trigger browser download of the generated MP3.
    */
-  const downloadMp3 = useCallback((blob, filename = `voxify-${Date.now()}.mp3`) => {
+  const downloadMp3 = useCallback((blob, filename = `mianova-${Date.now()}.mp3`) => {
     if (!blob) return
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')

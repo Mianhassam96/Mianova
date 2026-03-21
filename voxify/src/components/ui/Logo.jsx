@@ -1,16 +1,17 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 
-const LETTERS = ['V', 'o', 'x', 'i', 'f', 'y']
+const LETTERS = ['M', 'i', 'a', 'n', 'o', 'v', 'a']
 
 // Each letter gets a unique color stop in the gradient
 const COLORS = [
-  '#6366f1', // V - indigo
-  '#7c3aed', // o - violet
-  '#8b5cf6', // x - purple
-  '#06b6d4', // i - cyan
-  '#0ea5e9', // f - sky
-  '#6366f1', // y - indigo
+  '#6366f1', // M - indigo
+  '#7c3aed', // i - violet
+  '#8b5cf6', // a - purple
+  '#a855f7', // n - fuchsia
+  '#06b6d4', // o - cyan
+  '#0ea5e9', // v - sky
+  '#6366f1', // a - indigo
 ]
 
 export function Logo({ size = 'md', linkTo = '/' }) {

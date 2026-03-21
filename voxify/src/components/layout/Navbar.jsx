@@ -101,7 +101,7 @@ export function Navbar() {
               </Link>
             ))}
             <Link to="/app" className="block mt-2 px-4 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-sm font-bold text-center">
-              🎙 Try Voxify
+              🎙 Try Mianova
             </Link>
           </div>
         </div>
