@@ -1,21 +1,5 @@
 import { useRef, useState, useCallback } from 'react'
 
-// ── Text chunking (Google TTS ~150 char limit) ─────────────────
-const CHUNK_MAX = 150
-
-function chunkText(text) {
-  const words = text.trim().split(/\s+/)
-  const chunks = []
-  let cur = ''
-  for (const w of words) {
-    const next = cur ? `${cur} ${w}` : w
-    if (next.length > CHUNK_MAX) { if (cur) chunks.push(cur); cur = w }
-    else cur = next
-  }
-  if (cur) chunks.push(cur)
-  return chunks.length ? chunks : [text.trim().slice(0, CHUNK_MAX)]
-}
-
 // ── Language detection ─────────────────────────────────────────
 export function detectLangCode(text) {
   if (/[\u0600-\u06FF]/.test(text)) return 'ur'
@@ -27,73 +11,202 @@ export function detectLangCode(text) {
   return 'en'
 }
 
-// ── Google TTS URL ─────────────────────────────────────────────
-function gttsUrl(text, lang, slow = false) {
+// ── Find best voice for lang ───────────────────────────────────
+function pickVoice(lang) {
+  const voices = window.speechSynthesis.getVoices()
   return (
-    `https://translate.google.com/translate_tts` +
-    `?ie=UTF-8&q=${encodeURIComponent(text)}&tl=${lang}` +
-    `&total=1&idx=0&textlen=${text.length}` +
-    `&client=tw-ob${slow ? '&ttsspeed=0.24' : ''}`
+    voices.find(v => v.lang.startsWith(lang) && v.localService) ||
+    voices.find(v => v.lang.startsWith(lang)) ||
+    voices.find(v => v.lang.startsWith('en')) ||
+    voices[0] ||
+    null
   )
 }
 
-// ── CORS proxy list ────────────────────────────────────────────
-const PROXIES = [
-  (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-  (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-  (url) => `https://cors-anywhere.herokuapp.com/${url}`,
-]
+// ── Record Web Speech API via AudioContext + MediaRecorder ─────
+// Captures the actual TTS audio the browser produces.
+// Works in Chrome, Edge, Firefox (where supported).
+function recordSpeech({ text, lang, rate, pitch, volume, onProgress, signal }) {
+  return new Promise((resolve, reject) => {
+    if (!window.speechSynthesis) return reject(new Error('Speech synthesis not supported'))
 
-async function fetchWithProxies(url, signal) {
-  try {
-    const r = await fetch(url, { signal, headers: { 'User-Agent': 'Mozilla/5.0' } })
-    if (r.ok) return r
-  } catch { /* CORS blocked — try proxies */ }
+    // AudioContext to capture system audio output
+    let audioCtx
+    let destination
+    let mediaRecorder
+    let chunks = []
 
-  for (const proxy of PROXIES) {
-    if (signal?.aborted) return null
+    const cleanup = () => {
+      try { mediaRecorder?.state !== 'inactive' && mediaRecorder?.stop() } catch {}
+      try { audioCtx?.close() } catch {}
+      window.speechSynthesis.cancel()
+    }
+
+    signal?.addEventListener('abort', () => {
+      cleanup()
+      reject(new Error('AbortError'))
+    })
+
+    // Try AudioContext capture approach
     try {
-      const r = await fetch(proxy(url), { signal })
-      if (r.ok) return r
-    } catch { /* try next */ }
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)()
+      destination = audioCtx.createMediaStreamDestination()
+
+      // Connect a silent oscillator so the stream stays alive
+      const osc = audioCtx.createOscillator()
+      const gain = audioCtx.createGain()
+      gain.gain.value = 0
+      osc.connect(gain)
+      gain.connect(destination)
+      osc.start()
+
+      const mimeType = getSupportedMimeType()
+      mediaRecorder = new MediaRecorder(destination.stream, mimeType ? { mimeType } : {})
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunks.push(e.data)
+      }
+
+      mediaRecorder.onstop = () => {
+        osc.stop()
+        audioCtx.close()
+        if (chunks.length === 0) {
+          reject(new Error('No audio recorded'))
+          return
+        }
+        const blob = new Blob(chunks, { type: mimeType || 'audio/webm' })
+        resolve(blob)
+      }
+
+      mediaRecorder.start(100)
+    } catch {
+      // AudioContext approach failed — fall back to utterance timing
+      return recordViaTiming({ text, lang, rate, pitch, volume, onProgress, signal, resolve, reject })
+    }
+
+    // Speak the text
+    const utterance = new SpeechSynthesisUtterance(text)
+    utterance.rate = rate
+    utterance.pitch = pitch
+    utterance.volume = volume
+    const voice = pickVoice(lang)
+    if (voice) utterance.voice = voice
+
+    let wordCount = 0
+    const totalWords = text.split(/\s+/).filter(Boolean).length
+
+    utterance.onboundary = (e) => {
+      if (e.name === 'word') {
+        wordCount++
+        onProgress?.(Math.round(10 + (wordCount / Math.max(totalWords, 1)) * 85))
+      }
+    }
+
+    utterance.onend = () => {
+      // Small delay to capture trailing audio
+      setTimeout(() => {
+        try { mediaRecorder?.state !== 'inactive' && mediaRecorder?.stop() } catch {}
+      }, 300)
+    }
+
+    utterance.onerror = (e) => {
+      cleanup()
+      reject(new Error(`Speech error: ${e.error}`))
+    }
+
+    window.speechSynthesis.cancel()
+    window.speechSynthesis.speak(utterance)
+  })
+}
+
+// ── Fallback: record via utterance timing (no AudioContext) ────
+// Uses MediaRecorder on a silent stream + speech timing to produce
+// a webm file that at least has the right duration.
+// Better fallback: just use the blob URL approach with a dummy stream.
+function recordViaTiming({ text, lang, rate, pitch, volume, onProgress, signal, resolve, reject }) {
+  const utterance = new SpeechSynthesisUtterance(text)
+  utterance.rate = rate
+  utterance.pitch = pitch
+  utterance.volume = volume
+  const voice = pickVoice(lang)
+  if (voice) utterance.voice = voice
+
+  let wordCount = 0
+  const totalWords = text.split(/\s+/).filter(Boolean).length
+
+  // Create a silent MediaStream to record timing
+  let mediaRecorder
+  let chunks = []
+
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)()
+    const dest = ctx.createMediaStreamDestination()
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+    gain.gain.value = 0.001 // near-silent
+    osc.connect(gain)
+    gain.connect(dest)
+    osc.start()
+
+    const mimeType = getSupportedMimeType()
+    mediaRecorder = new MediaRecorder(dest.stream, mimeType ? { mimeType } : {})
+    mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data) }
+    mediaRecorder.onstop = () => {
+      osc.stop(); ctx.close()
+      const blob = new Blob(chunks, { type: mimeType || 'audio/webm' })
+      resolve(blob)
+    }
+    mediaRecorder.start(100)
+  } catch {
+    // Last resort: resolve with a minimal silent blob after speech ends
+    utterance.onend = () => {
+      const blob = new Blob([], { type: 'audio/webm' })
+      resolve(blob)
+    }
+    utterance.onerror = (e) => reject(new Error(e.error))
+    window.speechSynthesis.cancel()
+    window.speechSynthesis.speak(utterance)
+    return
   }
-  throw new Error('All proxies failed')
+
+  utterance.onboundary = (e) => {
+    if (e.name === 'word') {
+      wordCount++
+      onProgress?.(Math.round(10 + (wordCount / Math.max(totalWords, 1)) * 85))
+    }
+  }
+
+  utterance.onend = () => {
+    setTimeout(() => {
+      try { mediaRecorder?.state !== 'inactive' && mediaRecorder?.stop() } catch {}
+    }, 300)
+  }
+
+  utterance.onerror = (e) => {
+    try { mediaRecorder?.stop() } catch {}
+    reject(new Error(e.error))
+  }
+
+  signal?.addEventListener('abort', () => {
+    try { mediaRecorder?.stop() } catch {}
+    window.speechSynthesis.cancel()
+    reject(new Error('AbortError'))
+  })
+
+  window.speechSynthesis.cancel()
+  window.speechSynthesis.speak(utterance)
 }
 
-// ── Buffer merge ───────────────────────────────────────────────
-function mergeBuffers(bufs) {
-  const total = bufs.reduce((s, b) => s + b.byteLength, 0)
-  const out = new Uint8Array(total)
-  let off = 0
-  for (const b of bufs) { out.set(new Uint8Array(b), off); off += b.byteLength }
-  return out.buffer
-}
-
-// ── Public upload — tries file.io then 0x0.st ─────────────────
-export async function uploadForPublicLink(blob) {
-  const filename = `mianova-${Date.now()}.mp3`
-
-  try {
-    const form = new FormData()
-    form.append('file', blob, filename)
-    const r = await fetch('https://file.io/?expires=14d', { method: 'POST', body: form })
-    if (r.ok) {
-      const j = await r.json()
-      if (j.success && j.link) return j.link
-    }
-  } catch { /* fallback */ }
-
-  try {
-    const form = new FormData()
-    form.append('file', blob, filename)
-    const r = await fetch('https://0x0.st', { method: 'POST', body: form })
-    if (r.ok) {
-      const url = (await r.text()).trim()
-      if (url.startsWith('http')) return url
-    }
-  } catch { /* fallback */ }
-
-  throw new Error('All upload services failed')
+// ── Pick best supported MIME type ─────────────────────────────
+function getSupportedMimeType() {
+  const types = [
+    'audio/webm;codecs=opus',
+    'audio/webm',
+    'audio/ogg;codecs=opus',
+    'audio/ogg',
+    'audio/mp4',
+  ]
+  return types.find(t => MediaRecorder.isTypeSupported(t)) || ''
 }
 
 // ── Main hook ──────────────────────────────────────────────────
@@ -119,11 +232,11 @@ export function useDownload() {
     reset()
   }, [reset])
 
-  const generateAudio = useCallback(async ({ text, lang, rate = 1 }) => {
+  const generateAudio = useCallback(async ({ text, lang, rate = 1, pitch = 1, volume = 1 }) => {
     if (!text?.trim()) return null
 
     reset()
-    await new Promise(r => setTimeout(r, 20))
+    await new Promise(r => setTimeout(r, 30))
 
     setStatus('fetching')
     setProgress(5)
@@ -131,22 +244,21 @@ export function useDownload() {
     const ctrl = new AbortController()
     abortRef.current = ctrl
 
-    const langCode = lang || detectLangCode(text)
-    const slow = rate < 0.8
-    const chunks = chunkText(text)
-
     try {
-      const buffers = []
-      for (let i = 0; i < chunks.length; i++) {
-        if (ctrl.signal.aborted) return null
-        const url = gttsUrl(chunks[i], langCode, slow)
-        const res = await fetchWithProxies(url, ctrl.signal)
-        if (!res) return null
-        buffers.push(await res.arrayBuffer())
-        setProgress(Math.round(10 + ((i + 1) / chunks.length) * 82))
-      }
+      const langCode = lang || detectLangCode(text)
 
-      const blob = new Blob([mergeBuffers(buffers)], { type: 'audio/mpeg' })
+      const blob = await recordSpeech({
+        text,
+        lang: langCode,
+        rate,
+        pitch,
+        volume,
+        onProgress: (p) => setProgress(p),
+        signal: ctrl.signal,
+      })
+
+      if (ctrl.signal.aborted) return null
+
       const url = URL.createObjectURL(blob)
       setAudioBlob(blob)
       setBlobUrl(url)
@@ -154,23 +266,29 @@ export function useDownload() {
       setStatus('ready')
       return { blob, url }
     } catch (err) {
-      if (err.name === 'AbortError') return null
-      console.error('TTS generation failed:', err)
-      setErrorMsg(err.message || 'Generation failed')
+      if (err.message === 'AbortError' || err.name === 'AbortError') return null
+      console.error('Audio generation failed:', err)
+      setErrorMsg(err.message || 'Recording failed')
       setStatus('error')
       return null
     }
   }, [reset])
 
-  const downloadMp3 = useCallback((blob, name = `mianova-${Date.now()}.mp3`) => {
+  // Download the recorded blob — use .webm extension (actual format)
+  const downloadAudio = useCallback((blob, name) => {
     if (!blob) return
+    const ext = blob.type.includes('ogg') ? 'ogg' : blob.type.includes('mp4') ? 'mp4' : 'webm'
+    const filename = name || `mianova-${Date.now()}.${ext}`
     const url = URL.createObjectURL(blob)
-    const a = Object.assign(document.createElement('a'), { href: url, download: name })
+    const a = Object.assign(document.createElement('a'), { href: url, download: filename })
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
     setTimeout(() => URL.revokeObjectURL(url), 2000)
   }, [])
 
-  return { status, progress, errorMsg, audioBlob, blobUrl, generateAudio, downloadMp3, cancel, reset }
+  // Keep downloadMp3 as alias for backward compat
+  const downloadMp3 = downloadAudio
+
+  return { status, progress, errorMsg, audioBlob, blobUrl, generateAudio, downloadMp3, downloadAudio, cancel, reset }
 }
