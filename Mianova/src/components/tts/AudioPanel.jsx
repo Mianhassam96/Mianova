@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { useDownload } from '../../hooks/useDownload'
 
 export function AudioPanel({ text, lang, rate = 1, pitch = 1, volume = 1 }) {
-  const { status, progress, errorMsg, audioBlob, blobUrl, generateAudio, downloadAudio, cancel, reset } = useDownload()
+  const { status, progress, errorMsg, audioBlob, blobUrl, generateAudio, downloadMp3, cancel, reset } = useDownload()
   const [copied, setCopied] = useState(false)
   const audioRef = useRef(null)
 
@@ -31,11 +31,6 @@ export function AudioPanel({ text, lang, rate = 1, pitch = 1, volume = 1 }) {
     setCopied(true)
     setTimeout(() => setCopied(false), 3000)
   }, [blobUrl])
-
-  // Determine file extension from blob type
-  const fileExt = audioBlob?.type.includes('ogg') ? 'ogg'
-    : audioBlob?.type.includes('mp4') ? 'mp4'
-    : 'webm'
 
   return (
     <div className="glass-card rounded-3xl overflow-hidden">
@@ -74,8 +69,7 @@ export function AudioPanel({ text, lang, rate = 1, pitch = 1, volume = 1 }) {
             </button>
             <p className="text-xs text-center text-gray-400 dark:text-gray-600">
               Records browser TTS · No internet needed · Works offline
-            </p>
-          </>
+            </p>          </>
         )}
 
         {/* FETCHING */}
@@ -123,10 +117,10 @@ export function AudioPanel({ text, lang, rate = 1, pitch = 1, volume = 1 }) {
 
             {/* Download */}
             <button
-              onClick={() => downloadAudio(audioBlob)}
+              onClick={() => downloadMp3(audioBlob)}
               className="w-full py-3 rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold text-sm shadow-lg shadow-indigo-200 dark:shadow-indigo-900/30 transition-all active:scale-95 flex items-center justify-center gap-2"
             >
-              ⬇ Download Audio (.{fileExt})
+              ⬇ Download MP3
             </button>
 
             {/* Copy blob URL */}
