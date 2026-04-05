@@ -4,7 +4,7 @@
 **Turn Text into Natural Voice Instantly**
 
 Mianova is a modern and lightweight Text-to-Speech (TTS) web application that converts written text into natural-sounding speech. Built with React and the Web Speech API, it provides a clean interface, smart controls, and a smooth user experience designed for speed, accessibility, and simplicity.
-
+ 
 ## 🚀 Live Demo
 
 [Mianova ](https://mianhassam96.github.io/Mianova)
